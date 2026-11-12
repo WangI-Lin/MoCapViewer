@@ -1,0 +1,151 @@
+# MoCapViewer
+
+<img src="icon/mocapviewer_icon_128.png" width="96" align="right" alt="MoCapViewer 圖示">
+
+[English](README.md)
+
+**用 MATLAB 寫的 Mokka 風格動作擷取檢視器，可開啟 C3D、TRC、BVH。**
+
+MoCapViewer 在 3D 中顯示標記點、骨架、測力板與地面反作用力，畫出標記點、類比通道與 Model outputs 的曲線，
+編輯事件，再存成 C3D、TRC 或 CSV。滑鼠和鍵盤的用法與 [Mokka](https://biomechanical-toolkit.github.io/mokka/) 相同。
+
+需要的東西都在這個專案裡。C3D 讀寫使用 [ezc3d](https://github.com/pyomeca/ezc3d)（MIT 授權），已經附上；
+不需要任何 MATLAB 工具箱。
+
+作者：**Dr. I-Lin Wang**（<ilin@gms.ndhu.edu.tw>）
+
+## 快速開始
+
+```matlab
+cd MoCapViewer
+MoCapViewer                     % 開空白視窗，再用 File > Open... 或把檔案拖進去
+MoCapViewer('trial.c3d')        % 直接開檔
+```
+
+- 需要 MATLAB **R2021a 以上**（在 R2026a、Apple Silicon 上開發）。
+- 已附 ezc3d 1.7.2：macOS（Apple Silicon 與 Intel）和 Windows 64 位元。Linux 請自行編譯 ezc3d 的 MATLAB 版，
+  把 `ezc3dRead` 和 `ezc3dWrite` 放到 `ezc3d/glnxa64/`。
+- macOS 第一次執行時，若 MEX 檔被 Gatekeeper 擋下，在終端機執行一次：
+  `xattr -dr com.apple.quarantine "<專案資料夾>/ezc3d"`。
+- MATLAB 路徑上不要有 Biomechanical ToolKit 或 Moveck Bridge：它們的 `btk*` 函式同名。MoCapViewer 啟動時會把它們從路徑移除。
+
+`samples/` 裡有三個 TRC 檔可以試。
+
+## 功能
+
+**3D 視圖**
+- 左鍵拖曳旋轉，中鍵拖曳或 Alt + 左鍵拖曳平移，滾輪縮放。
+- 點選標記點；Ctrl/Cmd + 點選加選；Shift + 拖曳框選；Shift + Ctrl + 點選切換軌跡顯示。
+- Perspective、Top、Bottom、Front、Back、Left、Right 視角，可分成 1、2 或 4 個視圖。
+- 地板格線、座標軸、測力板（**板面上平貼顯示編號 1、2、3…**）、地面反作用力向量與壓力中心。
+- 標記點顏色、大小、顯示與軌跡，以及骨架連線與面，可存成 Mokka 的 `.mvc` 檔。
+  `models/` 裡有 Helen Hayes、CGM2、Shadow 的設定（*Model > Load configuration...*）。
+
+**左側清單**
+- Markers、Virtual markers、Segments、Analogs、Model outputs，與 Mokka 相同。
+- Model outputs 是 C3D 檔在 `POINT:ANGLES`、`FORCES`、`MOMENTS`、`POWERS`、`SCALARS` 列出的點，
+  不會當成標記點畫在 3D 裡；點一下就畫出曲線。
+
+**時間軸與事件**
+- 目前格、分析區間前後邊界與事件標示（Alt + 拖曳可移動事件）。
+- 播放速度：即時、1/2、1/4、1/5、1/10 或逐格；在分析區間內循環播放。
+- 新增、編輯、刪除事件（表格編輯、Alt + 1…9、時間軸右鍵）。
+- 用測力板垂直力自動偵測步態事件。
+- 裁切到分析區間、格數重新編號、設定第一格、重新取樣、mm 與 m 互換。
+
+**標記點與類比工具**
+- 標記點：刪除、改名、補缺值（spline、pchip、linear）、零相位 Butterworth 濾波、平均標記點、距離與角度曲線。
+- 類比：去偏移、Butterworth 低通、高通、帶通、整流、縮放、RMS 或移動平均包絡線、刪除。
+  結果可覆寫原通道，或另存為 `label_suffix` 新通道。
+
+**曲線圖**
+- 多條曲線疊圖並有圖例；滑鼠停留讀值、點擊跳格、滾輪縮放時間軸。
+- 橫軸可用格數、秒或**步態週期百分比**（所有週期，或平均 ± 標準差）。
+- 曲線資料可匯出 CSV。
+
+**檔案**
+- 可把 `.c3d`、`.trc`、`.bvh`、`.mvc` 直接拖到視窗上開啟。
+- BVH 的每個關節變成一個標記點，關節階層變成 `Skeleton` 骨架，預設縮放到身高 1.75 m，也可指定單位。
+  另存為 C3D 即可把 BVH 轉成 C3D。
+- 另存為 C3D 或 TRC；標記點、類比通道、Model outputs、事件都可匯出 CSV。
+- 可同步播放一支影片並設定時間差，也可以只開影片。
+
+完整使用手冊：[docs/manual.zh-TW.md](docs/manual.zh-TW.md)。
+
+## 用程式控制
+
+```matlab
+app = MoCapViewer('trial.c3d');     % 同資料夾的 trial.mvc 會自動套用
+app.setFrame(120);
+app.startPlayback(); app.stopPlayback();
+app.setSelection([3 5]);
+app.loadModelConfig('models/HelenHayes.mvc');
+app.saveModelConfig('out.mvc');
+```
+
+- 視窗開著時改了程式碼，請先執行 `MoCapViewer.closeAll; clear classes`。
+- 不開視窗的檢查：`selftest_MoCapViewer('trial.c3d')`、`selftest_bvh('walk.bvh')`。
+
+## 建置獨立執行檔
+
+需要 MATLAB Compiler：
+
+```matlab
+build_mac      % macOS：build/MoCapViewer/MoCapViewer.app 與安裝程式
+build_win      % Windows：build\MoCapViewer\MoCapViewer.exe 與安裝程式
+```
+
+建置出來的程式包含 ezc3d，不含 Moveck Bridge，可以分享，例如放到 GitHub Releases。請一併附上 [LICENSE](LICENSE)
+和 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。使用者需要安裝同一個 MATLAB 版本的免費 MATLAB Runtime，
+安裝程式可以代為下載。
+
+## C3D 檔的處理方式
+
+MoCapViewer 呼叫的是 BTK 風格的函式（`btkReadAcquisition`、`btkGetMarkers` 等）。本專案裡這些函式放在
+`btk_ezc3d/`，用 ezc3d 實作，核心是 `btk_ezc3d/mcv_btk.m`。
+
+和 Biomechanical ToolKit 不同的地方：
+
+- 測力板支援類型 1 到 4；其他類型不計算地面反作用力。
+- C3D 一律存成浮點數、Intel 位元組順序，類比資料以實際單位寫出（`ANALOG:SCALE` = 1、`OFFSET` = 0）；
+  攝影機遮罩不保留。
+- ezc3d 對 `ANALOG:OFFSET` 取絕對值，偏移量為負的檔案，類比數值可能不同。
+
+`compare_with_bridge.m` 是開發用的檢查：如果你有 Moveck Bridge，它會把同一個 C3D 用 Bridge 和 ezc3d 各讀一次，
+列出所有差異。
+
+## 檔案結構
+
+- `MoCapViewer.m`：主程式，一個 `classdef`。`MoCapViewerApp.m` 是獨立執行檔的進入點。
+- `btk_ezc3d/`：用 ezc3d 實作、名稱與 BTK 相容的 `btk*` 函式。
+- `ezc3d/`：ezc3d 1.7.2 的 MATLAB 版（`maca64`、`maci64`、`win64`）。
+- `mcv_read_trc.m`、`mcv_read_bvh.m`、`mcv_write_trc.m`、`mcv_write_csv.m`：TRC 與 BVH 讀檔、匯出。
+- `mcv_mvc.m`：Mokka `.mvc` 讀寫。
+- `mcv_butterworth.m`、`mcv_fill_gaps.m`、`mcv_resample.m`、`mcv_envelope.m`、`mcv_cycle_normalize.m`：
+  不需工具箱的訊號處理，在 GNU Octave 也能執行。
+- `mcv_file_drop.m`、`mcv_file_dialog.m`、`mcv_param_dialog.m`、`mcv_segment_dialog.m`：拖放開檔與對話框。
+- `selftest_MoCapViewer.m`、`selftest_bvh.m`、`compare_with_bridge.m`：命令列檢查。
+- `build_mac.m`、`build_win.m`：建置腳本。
+- `models/`、`samples/`、`icon/`、`docs/`：`.mvc` 模型設定、範例 TRC 檔、圖示、手冊。
+- `edition.txt`：內容是 `viewer`，指定使用 `MoCapViewer` 類別的檢視器版本。
+
+## 其他限制
+
+- Butterworth 帶通是高通加低通串接，中心頻率的增益略低於 1。
+- Mokka 有、這裡沒有的功能：STL 與影像序列匯出、Vicon VSK 與 VST 骨架。
+- `.mvc` 依照 Mokka 0.6 的格式，這裡存的檔 Mokka 可以開。標記點名稱要和資料檔相同（不分大小寫）。
+- 事件時間預設以第 1 格 = 0 秒計算，與 Mokka、Vicon 相同；可在 *Settings > Event time reference* 改。
+
+## 致謝
+
+- [Mokka](https://biomechanical-toolkit.github.io/mokka/) 與
+  [Biomechanical ToolKit](https://github.com/Biomechanical-ToolKit)：本程式依循的操作方式與 API。
+- [ezc3d](https://github.com/pyomeca/ezc3d)（Michaud 與 Begon，pyomeca）：C3D 讀寫。
+
+## 授權
+
+MoCapViewer 採用 MIT 授權，見 [LICENSE](LICENSE)。
+
+第三方內容與其授權列在 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)：ezc3d（MIT）、`btk_ezc3d/` 所依循的 BTK 行為
+（BSD 3-Clause）、`mcv_file_drop.m`（改寫自 uiFileDnD，MIT）、`models/CGM2.mvc`（取自 pyCGM2，CC BY-SA 4.0）、
+`samples/*.trc`（OpenSim 範例，Apache-2.0）。
