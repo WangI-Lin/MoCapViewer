@@ -2,7 +2,7 @@
 
 <img src="icon/mocapviewer_icon_128.png" width="96" align="right" alt="MoCapViewer icon">
 
-[繁體中文](README.zh-TW.md)
+[繁體中文](https://github.com/WangI-Lin/MoCapViewer/blob/main/README.zh-TW)
 
 **A Mokka-style viewer for C3D, TRC and BVH motion-capture files, written in MATLAB.**
 
